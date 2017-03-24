@@ -38,7 +38,8 @@
 
         createCameraFinal: function ( texture ) {
 
-            var texturedQuadUsingTargetTexture = osg.createTexturedQuadGeometry( -1, -1, 0,
+            var texturedQuadUsingTargetTexture = osg.createTexturedQuadGeometry(
+                -1, -1, 0,
                 2, 0, 0,
                 0, 2, 0
             );
@@ -112,6 +113,7 @@
                     positions[ i ],
                     osg.vec3.fromValues( 0, 0, 0 ),
                     osg.vec3.fromValues( 0, 1, 0 ) ) );
+
 
                 camera.setProjectionMatrix( osg.mat4.perspective( osg.mat4.create(), Math.PI / 180 * 60, width / height, 0.1, 100.0 ) );
 
