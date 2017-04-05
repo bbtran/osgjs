@@ -92,7 +92,7 @@ ShaderGenerator.prototype = {
             var attributeStack = state._attributeArray[ type ];
             if ( attributeStack ) {
                 var attribute = attributeStack.lastApplied;
-                if ( !attribute || !this.filterAttributeTypes( attribute ) ) continue;
+                if ( !attribute || this.filterAttributeTypes( attribute ) ) continue;
 
                 hash += attributeStack.lastApplied.getHash();
             }

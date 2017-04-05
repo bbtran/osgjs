@@ -3,8 +3,6 @@
 var MACROUTILS = require( 'osg/Utils' );
 var StateAttribute = require( 'osg/StateAttribute' );
 var Uniform = require( 'osg/Uniform' );
-var Notify = require( 'osg/notify' );
-
 
 /**
  * ShadowReceiveAttribute encapsulate Shadow Main State object

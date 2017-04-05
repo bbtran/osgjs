@@ -36,6 +36,8 @@ var StateSet = function () {
 
     this.uniforms = {};
 
+    this._hasUniform = false;
+
     this._drawID = -1; // used by the RenderLeaf to decide if it should apply the stateSet
 };
 
@@ -79,6 +81,7 @@ MACROUTILS.createPrototypeClass( StateSet, MACROUTILS.objectInherit( Object.prot
         var mode = originalMode !== undefined ? originalMode : StateAttribute.ON;
         var name = uniform.getName();
         this.uniforms[ name ] = this.getAttributePair( uniform, mode );
+        this._hasUniform = true;
     },
 
     addParent: function ( node ) {
@@ -92,11 +95,16 @@ MACROUTILS.createPrototypeClass( StateSet, MACROUTILS.objectInherit( Object.prot
     },
 
     removeUniform: function ( uniform ) {
-        delete this.uniforms[ uniform.getName() ];
+        this.removeUniformByName( uniform.getName() );
     },
 
     removeUniformByName: function ( uniformName ) {
         delete this.uniforms[ uniformName ];
+        this._hasUniform = Object.keys( this.uniforms ).length ? true : false;
+    },
+
+    hasUniform: function() {
+        return this._hasUniform;
     },
 
     getUniform: function ( uniform ) {
@@ -275,9 +283,6 @@ MACROUTILS.createPrototypeClass( StateSet, MACROUTILS.objectInherit( Object.prot
             }
         }
     },
-    _getUniformMap: function () {
-        return this.uniforms;
-    },
 
     // for internal use, you should not call it directly
     _setTextureAttribute: function ( unit, attributePair ) {
@@ -300,11 +305,21 @@ MACROUTILS.createPrototypeClass( StateSet, MACROUTILS.objectInherit( Object.prot
         for ( var i = 0, l = textureAttributeArrayList.length; i < l; i++ ) {
             var attributeList = textureAttributeArrayList[ i ];
             if ( !attributeList || !attributeList.length ) continue;
-            this._activeTextureAttributeUnit.push( i );
+            var hasValidAttribute = false;
             for ( var j = 0, k = attributeList.length; j < k; j++ ) {
-                if ( attributeList[ j ] &&
-                     this._activeTextureAttribute.indexOf( j ) === -1 ) this._activeTextureAttribute.push( j );
+
+                if ( attributeList[ j ] ) {
+
+                    hasValidAttribute = true;
+
+                    if ( this._activeTextureAttribute.indexOf( j ) === -1 )  {
+                        this._activeTextureAttribute.push( j );
+                    }
+
+                }
             }
+
+            if ( hasValidAttribute ) this._activeTextureAttributeUnit.push( i );
         }
     },
 

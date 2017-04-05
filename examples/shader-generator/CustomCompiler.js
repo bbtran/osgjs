@@ -16,6 +16,7 @@
     CustomCompiler.validAttributeTypeMember.push( 'Negatif' );
     CustomCompiler.validAttributeTypeMember.forEach( osg.getOrCreateStateAttributeTypeMemberIndexFromName );
 
+    CustomCompiler.supportLibraryName = osgShader.Compiler.supportLibraryName;
 
     CustomCompiler.prototype = osg.objectInherit( osgShader.Compiler.prototype, {
 

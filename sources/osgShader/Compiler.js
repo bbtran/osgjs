@@ -49,11 +49,14 @@ var Compiler = function ( attributes, textureAttributes, shaderProcessor ) {
 };
 
 Compiler.validAttributeTypeMember = [
-    'ShadowReceive',
     'Light0',
+    'ShadowReceive0',
     'Light1',
+    'ShadowReceive1',
     'Light2',
+    'ShadowReceive2',
     'Light3',
+    'ShadowReceive3',
     'Light4',
     'Light5',
     'Light6',

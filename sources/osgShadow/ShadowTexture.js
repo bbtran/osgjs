@@ -129,7 +129,7 @@ MACROUTILS.createPrototypeStateAttribute( ShadowTexture, MACROUTILS.objectInheri
     },
 
     getHashInternal: function () {
-        return this.getTypeMember() + '_' + this._lightUnit + '_' + this._type;
+        return this.getTypeMember() + '_' + this._lightNumber + '_' + this._type;
     }
 
 } ), 'osgShadow', 'ShadowTexture' );

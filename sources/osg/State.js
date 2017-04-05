@@ -163,7 +163,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             return object;
 
         } else if ( ( back.value & StateAttribute.OVERRIDE ) &&
-                    !( maskValue & StateAttribute.PROTECTED ) ) {
+            !( maskValue & StateAttribute.PROTECTED ) ) {
 
             return back.object;
 
@@ -192,7 +192,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             this.pushAttributeMap( textureUnitAttributeArray, _attributeArray, activeTextureAttribute );
         }
 
-        if ( stateset.uniforms.getKeys().length ) this.pushUniformsList( this.uniforms, stateset.uniforms );
+        if ( stateset.hasUniform() ) this.pushUniformsList( this.uniforms, stateset.getUniformList() );
 
         var generatorPair = stateset.getShaderGeneratorPair();
         if ( generatorPair )
@@ -358,8 +358,8 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         var stateSetProgramPair = stateset._attributeArray[ this._programType ];
 
         if ( ( programStack.values.length !== 0 && programStack.back.value !== StateAttribute.OFF ) ||
-             ( stateSetProgramPair && stateSetProgramPair.getValue() !== StateAttribute.OFF )
-           ) return undefined;
+            ( stateSetProgramPair && stateSetProgramPair.getValue() !== StateAttribute.OFF )
+        ) return undefined;
 
 
         var stateSetGeneratorPair = stateset.getShaderGeneratorPair();
@@ -370,7 +370,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
             var maskValue = stateSetGeneratorPair.getValue();
             var stateSetGenerator = stateSetGeneratorPair.getShaderGeneratorName();
-            generator = this._evaluateOverrideObjectOnStack (this._shaderGeneratorNames, stateSetGenerator , maskValue );
+            generator = this._evaluateOverrideObjectOnStack( this._shaderGeneratorNames, stateSetGenerator, maskValue );
 
         } else if ( generatorStack.values.length ) {
 
@@ -444,7 +444,6 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     _applyTextureAttributeMapListStateSet: function ( _textureAttributesArrayList, stateSetTextureAttributeArrayList ) {
 
-        var gl = this._graphicContext;
         var _textureAttributeArray;
 
         var stateSetTextureAttributeLength, stateTextureAttributeLength;
@@ -593,7 +592,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             this.popAttributeMap( textureUnitAttributeArray, _attributeArray, activeTextureAttribute );
         }
 
-        if ( stateset.uniforms.getKeys().length ) this.popUniformsList( this.uniforms, stateset.uniforms );
+        if ( stateset.hasUniform() ) this.popUniformsList( this.uniforms, stateset.getUniformList() );
 
         if ( stateset.getShaderGeneratorPair() ) {
             this._shaderGeneratorNames.pop();
@@ -737,7 +736,6 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         this.lastAppliedAttributeLength = 0;
         var attributeStack;
         var validAttributeType = this._currentShaderGenerator ? this._currentShaderGenerator.getShaderCompiler().validAttributeTypeCache : undefined;
-        var bitfield = 0;
         for ( var i = 0, l = _attributeArray.length; i < l; i++ ) {
 
             attributeStack = _attributeArray[ i ];
@@ -769,12 +767,14 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         }
     },
 
-    getObjectPair: (function() {
+    getObjectPair: ( function () {
         return function ( object, value ) {
-            return { value: value,
-                     object: object };
+            return {
+                value: value,
+                object: object
+            };
         };
-    })(),
+    } )(),
 
 
     pushUniformsList: function ( uniformMap, stateSetUniformMap ) {
@@ -909,7 +909,6 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
                 attributeStack = _attributeArray[ index ];
             }
 
-            var attributeStack = attributeMap[ type ];
             this.pushCheckOverride( attributeStack, attribute, attributePair.getValue() );
             attributeStack.changed = true;
         }
@@ -1172,11 +1171,11 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     },
 
-    _applyCustomProgramUniforms: ( function ( ) {
+    _applyCustomProgramUniforms: ( function () {
 
         var activeUniformsList = [];
 
-        return function ( program,  stateset ) {
+        return function ( program, stateset ) {
 
             // custom program so we will iterate on uniform from the program and apply them
             // but in order to be able to use Attribute in the state graph we will check if
@@ -1191,29 +1190,27 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             }
 
             var programUniformMap = program.getUniformsCache();
-            var programUniformKeys = programUniformMap.getKeys();
             var uniformMapStack = this.uniforms;
 
             var programTrackUniformMap;
             if ( program.trackUniforms ) programTrackUniformMap = program.trackUniforms;
 
             var uniform;
-            for ( var i = 0, l = programUniformKeys.length; i < l; i++ ) {
-                var name = programUniformKeys[ i ];
-                var location = programUniformMap[ name ];
-                var uniformStack = uniformMapStack[ name ];
+            for ( var uniformName in programUniformMap ) {
+                var location = programUniformMap[ uniformName ];
+                var uniformStack = uniformMapStack[ uniformName ];
 
-                var hasStateSetUniformPair = stateset && stateset.uniforms[ name ];
+                var hasStateSetUniformPair = stateset && stateset.uniforms[ uniformName ];
 
                 if ( !uniformStack && !hasStateSetUniformPair ) {
 
                     if ( programTrackUniformMap === undefined ) continue;
 
-                    uniform = programTrackUniformMap[ name ];
+                    uniform = programTrackUniformMap[ uniformName ];
 
                 } else if ( hasStateSetUniformPair ) {
 
-                    var stateSetUniformPair = stateset.uniforms[ name ];
+                    var stateSetUniformPair = stateset.uniforms[ uniformName ];
                     var maskValue = stateSetUniformPair.getValue();
                     var stateSetUniform = stateSetUniformPair.getUniform();
                     if ( uniformStack )
@@ -1401,23 +1398,22 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
         // apply now foreign uniforms, it's uniforms needed by the program but not contains in attributes used to generate this program
         for ( i = 0, l = foreignUniformKeys.length; i < l; i++ ) {
+            var uniformName = foreignUniformKeys[ i ];
 
-            var name = foreignUniformKeys[ i ];
-
-            var uniformStack = uniformMapStack[ name ];
-            var hasStateSetUniformPair = stateset && stateset.uniforms[ name ];
+            var uniformStack = uniformMapStack[ uniformName ];
+            var hasStateSetUniformPair = stateset && stateset.uniforms[ uniformName ];
 
             if ( !hasStateSetUniformPair && !uniformStack ) continue;
 
             if ( !uniformStack ) {
 
-                uniform = stateSetUniform.getUniform();
-                this._createAttributeStack( uniformMapStack, name, uniform );
-                Notify.error( 'Uniform name not in the scene hierarchy! : ' + name );
+                Notify.error( 'Uniform name not in the scene hierarchy! : ' + uniformName );
+                uniform = stateset.uniforms[ uniformName ].getUniform();
+                this._createAttributeStack( uniformMapStack, uniformName, uniform );
 
             } else if ( hasStateSetUniformPair ) {
 
-                var stateSetUniformPair = stateset.uniforms[ name ];
+                var stateSetUniformPair = stateset.uniforms[ uniformName ];
                 var maskValue = stateSetUniformPair.getValue();
                 var stateSetUniform = stateSetUniformPair.getUniform();
                 uniform = this._evaluateOverrideObjectOnStack( uniformStack, stateSetUniform, maskValue );
@@ -1429,11 +1425,11 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             } else {
 
                 uniform = uniformStack.globalDefault;
-                Notify.warn( 'Uniform Default Not attached to a StateSet in Scene Hierarchy: ' + name );
+                Notify.warn( 'Uniform Default Not attached to a StateSet in Scene Hierarchy: ' + uniformName );
 
             }
 
-            this._checkCacheAndApplyUniform( uniform, cacheUniformsForeign, i, programUniformMap, keyUniform );
+            this._checkCacheAndApplyUniform( uniform, cacheUniformsForeign, i, programUniformMap, uniformName );
 
         }
     },

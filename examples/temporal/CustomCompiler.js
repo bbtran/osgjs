@@ -17,6 +17,8 @@ var CustomCompiler;
 
     CustomCompiler.validTextureAttributeTypeMember = osgShader.Compiler.validTextureAttributeTypeMember.slice( 0 );
 
+    CustomCompiler.supportLibraryName = osgShader.Compiler.supportLibraryName;
+
     CustomCompiler.prototype = osg.objectInherit( osgShader.Compiler.prototype, {
 
         getOrCreateProjectionMatrix: function () {
