@@ -185,15 +185,10 @@ MACROUTILS.createPrototypeStateAttribute( ShadowReceiveAttribute, MACROUTILS.obj
     },
 
     getHash: function () {
-        if ( window.useHashCache ) {
-            if ( !this._hashCashed )
-                this._hashCashed = this.getHashInternal();
-            return this._hashCashed;
-        }
-        return this.getHashInternal();
+        return this._computeHash();
     },
 
-    getHashInternal: function () {
+    _computeHash: function () {
         return this.getTypeMember() + '_' + this.getKernelSizePCF();
     }
 
