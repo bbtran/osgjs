@@ -58,31 +58,30 @@ var State = function ( shaderGeneratorProxy ) {
     this._currentVAO = null;
     this._currentIndexVBO = null;
 
-    this.vertexAttribList = [];
-    this.stateSets = new Stack();
+    this._stateSets = new Stack();
     this._shaderGeneratorNames = new Stack();
-    this.uniforms = {};
+    this._uniforms = {};
 
-    this.textureAttributeArrayList = [];
+    this._textureAttributeArrayList = [];
     this._attributeArray = [];
 
-    this.projectionMatrix = Uniform.createMatrix4( mat4.create(), 'uProjectionMatrix' );
-    this.modelMatrix = Uniform.createMatrix4( mat4.create(), 'uModelMatrix' );
-    this.viewMatrix = Uniform.createMatrix4( mat4.create(), 'uViewMatrix' );
-    this.modelViewMatrix = Uniform.createMatrix4( mat4.create(), 'uModelViewMatrix' );
-    this.modelNormalMatrix = Uniform.createMatrix3( mat3.create(), 'uModelNormalMatrix' );
-    this.modelViewNormalMatrix = Uniform.createMatrix3( mat3.create(), 'uModelViewNormalMatrix' );
+    this._projectionMatrix = Uniform.createMatrix4( mat4.create(), 'uProjectionMatrix' );
+    this._modelMatrix = Uniform.createMatrix4( mat4.create(), 'uModelMatrix' );
+    this._viewMatrix = Uniform.createMatrix4( mat4.create(), 'uViewMatrix' );
+    this._modelViewMatrix = Uniform.createMatrix4( mat4.create(), 'uModelViewMatrix' );
+    this._modelNormalMatrix = Uniform.createMatrix3( mat3.create(), 'uModelNormalMatrix' );
+    this._modelViewNormalMatrix = Uniform.createMatrix3( mat3.create(), 'uModelViewNormalMatrix' );
 
     // track uniform for color array enabled
     var arrayColorEnable = new Stack();
     arrayColorEnable.globalDefault = Uniform.createFloat1( 0.0, 'uArrayColorEnabled' );
 
-    this.uniforms.ArrayColorEnabled = arrayColorEnable;
+    this._uniforms.ArrayColorEnabled = arrayColorEnable;
 
     this._previousColorAttribPair = {};
-    this.vertexAttribMap = {};
-    this.vertexAttribMap._disable = [];
-    this.vertexAttribMap._keys = [];
+    this._vertexAttribMap = {};
+    this._vertexAttribMap._disable = [];
+    this._vertexAttribMap._keys = [];
 
     this._frameStamp = undefined;
 
@@ -90,10 +89,9 @@ var State = function ( shaderGeneratorProxy ) {
     // {} is faster
     this._programCommonUniformsCache = {};
 
-    // keep pointer on the last applied modelview matrix
-    this._modelViewMatrix = undefined;
-    // keep pointer on the last applied projection matrix
-    this._projectionMatrix = undefined;
+    // keep pointer on the last applied modelview and projection matrix
+    this._lastAppliedModelViewMatrix = undefined;
+    this._lastAppliedProjectionMatrix = undefined;
 
     // keep track of last applied program
     this._program = undefined;
@@ -171,7 +169,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     pushStateSet: function ( stateset ) {
         this._numPushStateSet++;
-        this.stateSets.push( stateset );
+        this._stateSets.push( stateset );
 
         this.pushAttributeMap( this._attributeArray, stateset._attributeArray, stateset._activeAttribute );
 
@@ -187,7 +185,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             this.pushAttributeMap( textureUnitAttributeArray, _attributeArray, activeTextureAttribute );
         }
 
-        if ( stateset.hasUniform() ) this.pushUniformsList( this.uniforms, stateset.getUniformList() );
+        if ( stateset.hasUniform() ) this.pushUniformsList( this._uniforms, stateset.getUniformList() );
 
         var generatorPair = stateset.getShaderGeneratorPair();
         if ( generatorPair )
@@ -195,7 +193,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
     },
 
     getStateSetStackSize: function () {
-        return this.stateSets.values.length;
+        return this._stateSets.values.length;
     },
 
     insertStateSet: ( function () {
@@ -206,7 +204,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             tmpStack.length = 0;
             var length = this.getStateSetStackSize();
             while ( length > pos ) {
-                tmpStack.push( this.stateSets.back );
+                tmpStack.push( this._stateSets.back );
                 this.popStateSet();
                 length--;
             }
@@ -235,7 +233,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
             // record the StateSet above the one we intend to remove
             while ( length - 1 > pos ) {
-                tmpStack.push( this.stateSets.back );
+                tmpStack.push( this._stateSets.back );
                 this.popStateSet();
                 length--;
             }
@@ -256,7 +254,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
     // applying uniform or operation. At each frame we need to
     // invalidate those informations
     resetCacheFrame: function () {
-        this._modelViewMatrix = this._projectionMatrix = undefined;
+        this._lastAppliedModelViewMatrix = this._lastAppliedProjectionMatrix = undefined;
     },
 
     resetStats: function () {
@@ -278,11 +276,11 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
         return function StateApplyModelViewMatrix( matrix, matrixModel ) {
 
-            if ( this._modelViewMatrix === matrix ) return false;
+            if ( this._lastAppliedModelViewMatrix === matrix ) return false;
 
             var program = this.getLastProgramApplied();
             var uniformCache = program.getUniformsCache();
-            var mu = this.modelViewMatrix;
+            var mu = this._modelViewMatrix;
             var mul = uniformCache.uModelViewMatrix;
             var gc = this.getGraphicContext();
             if ( mul ) {
@@ -292,12 +290,12 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             }
 
             var sendNormal;
-            if ( this._modelViewMatrix ) {
+            if ( this._lastAppliedModelViewMatrix ) {
 
                 // check if we need to push normal
                 // test rotation component, if not diff
                 // we dont need to send normal
-                var m2 = this._modelViewMatrix;
+                var m2 = this._lastAppliedModelViewMatrix;
                 for ( var i = 0; i < 11; i++ ) {
                     if ( matrix[ i ] !== m2[ i ] ) {
                         sendNormal = true;
@@ -309,7 +307,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             }
 
             if ( sendNormal ) {
-                mu = this.modelViewNormalMatrix;
+                mu = this._modelViewNormalMatrix;
                 mul = uniformCache.uModelViewNormalMatrix;
                 if ( mul ) {
                     mat3.normalFromMat4( normal, matrix );
@@ -325,18 +323,18 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
                 }
             }
 
-            this._modelViewMatrix = matrix;
+            this._lastAppliedModelViewMatrix = matrix;
             return true;
         };
     } )(),
 
     applyProjectionMatrix: function ( matrix ) {
 
-        if ( this._projectionMatrix === matrix ) return;
+        if ( this._lastAppliedProjectionMatrix === matrix ) return;
 
-        this._projectionMatrix = matrix;
+        this._lastAppliedProjectionMatrix = matrix;
         var program = this.getLastProgramApplied();
-        var mu = this.projectionMatrix;
+        var mu = this._projectionMatrix;
 
         var mul = program.getUniformsCache()[ mu.getName() ];
         if ( mul ) {
@@ -530,7 +528,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         this._currentShaderGenerator = this.getCurrentShaderGeneratorStateSet( stateset );
 
         this._applyAttributeMapStateSet( this._attributeArray, stateset._attributeArray );
-        this._applyTextureAttributeMapListStateSet( this.textureAttributeArrayList, stateset._textureAttributeArrayList );
+        this._applyTextureAttributeMapListStateSet( this._textureAttributeArrayList, stateset._textureAttributeArrayList );
 
         var lastApplied;
         var generatedProgram;
@@ -554,23 +552,23 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
         // reset reference of last applied matrix
         if ( previousProgram !== lastApplied ) {
-            this._modelViewMatrix = undefined;
-            this._projectionMatrix = undefined;
+            this._lastAppliedModelViewMatrix = undefined;
+            this._lastAppliedProjectionMatrix = undefined;
         }
 
     },
 
     popAllStateSets: function () {
-        while ( this.stateSets.values.length ) {
+        while ( this._stateSets.values.length ) {
             this.popStateSet();
         }
     },
 
     popStateSet: function () {
 
-        if ( this.stateSets.isEmpty() ) return;
+        if ( !this._stateSets.values.length ) return;
 
-        var stateset = this.stateSets.pop();
+        var stateset = this._stateSets.pop();
 
 
         this.popAttributeMap( this._attributeArray, stateset._attributeArray, stateset._activeAttribute );
@@ -587,7 +585,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             this.popAttributeMap( textureUnitAttributeArray, _attributeArray, activeTextureAttribute );
         }
 
-        if ( stateset.hasUniform() ) this.popUniformsList( this.uniforms, stateset.getUniformList() );
+        if ( stateset.hasUniform() ) this.popUniformsList( this._uniforms, stateset.getUniformList() );
 
         if ( stateset.getShaderGeneratorPair() ) {
             this._shaderGeneratorNames.pop();
@@ -678,7 +676,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         this._currentShaderGenerator = undefined;
 
         this.applyAttributeMap( this._attributeArray );
-        this.applyTextureAttributeMapList( this.textureAttributeArrayList );
+        this.applyTextureAttributeMapList( this._textureAttributeArrayList );
     },
 
     apply: function () {
@@ -691,7 +689,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         this._currentShaderGenerator = this.getCurrentShaderGenerator();
 
         this.applyAttributeMap( this._attributeArray );
-        this.applyTextureAttributeMapList( this.textureAttributeArrayList );
+        this.applyTextureAttributeMapList( this._textureAttributeArrayList );
 
         var lastApplied;
         var generatedProgram;
@@ -715,8 +713,8 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
         // reset reference of last applied matrix
         if ( previousProgram !== lastApplied ) {
-            this._modelViewMatrix = undefined;
-            this._projectionMatrix = undefined;
+            this._lastAppliedModelViewMatrix = undefined;
+            this._lastAppliedProjectionMatrix = undefined;
         }
     },
 
@@ -859,8 +857,8 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
     },
 
     getOrCreateTextureAttributeArray: function ( unit ) {
-        if ( !this.textureAttributeArrayList[ unit ] ) this.textureAttributeArrayList[ unit ] = [];
-        return this.textureAttributeArrayList[ unit ];
+        if ( !this._textureAttributeArrayList[ unit ] ) this._textureAttributeArrayList[ unit ] = [];
+        return this._textureAttributeArrayList[ unit ];
     },
 
     pushAttributeMap: function ( _attributeArray, stateSetAttributeArray, validAttributeArray ) {
@@ -914,11 +912,11 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
     },
 
     lazyDisablingOfVertexAttributes: function () {
-        var keys = this.vertexAttribMap._keys;
+        var keys = this._vertexAttribMap._keys;
         for ( var i = 0, l = keys.length; i < l; i++ ) {
             var attr = keys[ i ];
-            if ( this.vertexAttribMap[ attr ] ) {
-                this.vertexAttribMap._disable[ attr ] = true;
+            if ( this._vertexAttribMap[ attr ] ) {
+                this._vertexAttribMap._disable[ attr ] = true;
             }
         }
     },
@@ -931,7 +929,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             !program.getAttributesCache().Color ) return; // no color uniform or attribute used, exit
 
         // update uniform
-        var uniform = this.uniforms.ArrayColorEnabled.globalDefault;
+        var uniform = this._uniforms.ArrayColorEnabled.globalDefault;
 
         var previousColorEnabled = this._previousColorAttribPair[ program.getInstanceID() ];
 
@@ -952,7 +950,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             !program.getAttributesCache().Color ) return; // no color uniform or attribute used, exit
 
         // update uniform
-        var uniform = this.uniforms.ArrayColorEnabled.globalDefault;
+        var uniform = this._uniforms.ArrayColorEnabled.globalDefault;
 
         var previousColorEnabled = this._previousColorAttribPair[ program.getInstanceID() ];
 
@@ -967,20 +965,20 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     applyDisablingOfVertexAttributes: function () {
 
-        var keys = this.vertexAttribMap._keys;
+        var keys = this._vertexAttribMap._keys;
         for ( var i = 0, l = keys.length; i < l; i++ ) {
-            if ( this.vertexAttribMap._disable[ keys[ i ] ] === true ) {
+            if ( this._vertexAttribMap._disable[ keys[ i ] ] === true ) {
                 var attr = keys[ i ];
                 this._graphicContext.disableVertexAttribArray( attr );
-                this.vertexAttribMap._disable[ attr ] = false;
-                this.vertexAttribMap[ attr ] = false;
+                this._vertexAttribMap._disable[ attr ] = false;
+                this._vertexAttribMap[ attr ] = false;
             }
         }
     },
 
     clearVertexAttribCache: function () {
 
-        var vertexAttribMap = this.vertexAttribMap;
+        var vertexAttribMap = this._vertexAttribMap;
         var keys = vertexAttribMap._keys;
         for ( var i = 0, l = keys.length; i < l; i++ ) {
             var attr = keys[ i ];
@@ -988,8 +986,8 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             vertexAttribMap._disable[ attr ] = false;
         }
 
-        this.vertexAttribMap._disable.length = 0;
-        this.vertexAttribMap._keys.length = 0;
+        this._vertexAttribMap._disable.length = 0;
+        this._vertexAttribMap._keys.length = 0;
 
     },
 
@@ -1019,7 +1017,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     setVertexAttribArray: function ( attrib, array, normalize ) {
 
-        var vertexAttribMap = this.vertexAttribMap;
+        var vertexAttribMap = this._vertexAttribMap;
         vertexAttribMap._disable[ attrib ] = false;
         var gl = this._graphicContext;
         var binded = false;
@@ -1094,7 +1092,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             var textureAttributeKeys = textureAttributeKeysList[ unit ];
             if ( textureAttributeKeys === undefined ) continue;
 
-            var unitTextureAttributeList = this.textureAttributeArrayList[ unit ];
+            var unitTextureAttributeList = this._textureAttributeArrayList[ unit ];
             if ( unitTextureAttributeList === undefined ) continue;
 
             for ( var i = 0, l = textureAttributeKeys.length; i < l; i++ ) {
@@ -1160,7 +1158,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             }
 
             var programUniformMap = program.getUniformsCache();
-            var uniformMapStack = this.uniforms;
+            var uniformMapStack = this._uniforms;
 
             var programTrackUniformMap;
             if ( program.trackUniforms ) programTrackUniformMap = program.trackUniforms;
@@ -1229,12 +1227,12 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             if ( location !== undefined && activeUniformMap[ keyUniform ] === undefined ) {
 
                 // filter 'standard' uniform matrix that will be applied for all shader
-                if ( keyUniform !== this.modelViewMatrix.getName() &&
-                    keyUniform !== this.modelMatrix.getName() &&
-                    keyUniform !== this.viewMatrix.getName() &&
-                    keyUniform !== this.projectionMatrix.getName() &&
-                    keyUniform !== this.modelViewNormalMatrix.getName() &&
-                    keyUniform !== this.modelNormalMatrix.getName() &&
+                if ( keyUniform !== this._modelViewMatrix.getName() &&
+                    keyUniform !== this._modelMatrix.getName() &&
+                    keyUniform !== this._viewMatrix.getName() &&
+                    keyUniform !== this._projectionMatrix.getName() &&
+                    keyUniform !== this._modelViewNormalMatrix.getName() &&
+                    keyUniform !== this._modelNormalMatrix.getName() &&
                     keyUniform !== 'uArrayColorEnabled' ) {
                     foreignUniforms.push( keyUniform );
                 }
@@ -1282,7 +1280,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
         var activeUniformMap = program.getActiveUniforms();
 
         var foreignUniformKeys = program.getForeignUniforms();
-        var uniformMapStack = this.uniforms;
+        var uniformMapStack = this._uniforms;
 
         var cacheForeignUniforms = [];
         var cacheActiveUniforms = [];
@@ -1364,7 +1362,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             i++; // TODO not good, for in ordered consistency, etc...
         }
 
-        var uniformMapStack = this.uniforms;
+        var uniformMapStack = this._uniforms;
 
         // apply now foreign uniforms, it's uniforms needed by the program but not contains in attributes used to generate this program
         for ( i = 0, l = foreignUniformKeys.length; i < l; i++ ) {
@@ -1406,14 +1404,14 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     // Use to detect changes in RenderLeaf between call to avoid to applyStateSet
     _setStateSetsDrawID: function ( id ) {
-        var values = this.stateSets.values;
+        var values = this._stateSets.values;
         for ( var i = 0, nbStateSets = values.length; i < nbStateSets; i++ ) {
             values[ i ].setDrawID( id );
         }
     },
 
     _stateSetStackChanged: function ( id, nbLast ) {
-        var values = this.stateSets.values;
+        var values = this._stateSets.values;
         var nbStateSets = values.length;
         if ( nbLast !== nbStateSets )
             return true;

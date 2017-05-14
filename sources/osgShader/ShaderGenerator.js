@@ -108,7 +108,7 @@ ShaderGenerator.prototype = {
         var hash = '';
 
         var cacheType = this._ShaderCompiler.validTextureAttributeTypeMemberCache;
-        var textureUnitList = state.textureAttributeArrayList;
+        var textureUnitList = state._textureAttributeArrayList;
         for ( var j = 0; j < textureUnitList.length; j++ ) {
             var textureUnit = textureUnitList[ j ];
             if ( !textureUnit ) continue;
@@ -135,7 +135,7 @@ ShaderGenerator.prototype = {
     // get actives texture attribute that comes from state
     getActiveTextureAttributeList: function ( state, list ) {
         var hash = '';
-        var _attributeArrayList = state.textureAttributeArrayList;
+        var _attributeArrayList = state._textureAttributeArrayList;
         var i, l;
         var cacheType = this._ShaderCompiler.validTextureAttributeTypeMemberCache;
 

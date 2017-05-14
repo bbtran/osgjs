@@ -9,9 +9,6 @@ var Stack = function () {
 };
 
 Stack.prototype = {
-    isEmpty: function () {
-        return this.values.length === 0;
-    },
     push: function ( value ) {
         this.values.push( value );
         this.back = value;
