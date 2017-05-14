@@ -95,11 +95,6 @@ var State = function ( shaderGeneratorProxy ) {
     // keep pointer on the last applied projection matrix
     this._projectionMatrix = undefined;
 
-    this.lastAppliedAttribute = [];
-    this.lastAppliedTextureAttribute = [];
-    this.lastAppliedAttributeLength = 0;
-    this.lastAppliedTextureAttributeLength = 0;
-
     // keep track of last applied program
     this._program = undefined;
     // inject a default program to initialize the stack Program
@@ -678,11 +673,6 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
     },
 
     applyDefault: function () {
-        // reset GL State To Default
-        // we skip the textures/uniforms/shaders call since they are not necessary
-
-        // noticed that we accumulate lot of stack, maybe because of the stateGraph
-        // CP: ^^ really ? check it / report an issue
         this.popAllStateSets();
 
         this._currentShaderGenerator = undefined;
@@ -733,9 +723,7 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     applyAttributeMap: function ( _attributeArray ) {
 
-        this.lastAppliedAttributeLength = 0;
         var attributeStack;
-        var validAttributeType = this._currentShaderGenerator ? this._currentShaderGenerator.getShaderCompiler().validAttributeTypeCache : undefined;
         for ( var i = 0, l = _attributeArray.length; i < l; i++ ) {
 
             attributeStack = _attributeArray[ i ];
@@ -744,13 +732,6 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
             var attribute;
             if ( attributeStack.values.length ) attribute = attributeStack.back.object;
             else attribute = attributeStack.globalDefault;
-
-            // need to get the current attribute to check the type
-            if ( validAttributeType &&
-                validAttributeType[ attribute.attributeTypeId ] &&
-                !this._currentShaderGenerator.filterAttributeTypes( attribute ) ) {
-                this.lastAppliedAttribute[ this.lastAppliedAttributeLength++ ] = attribute;
-            }
 
             if ( !attributeStack.changed ) continue;
 
@@ -804,11 +785,8 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
 
     applyTextureAttributeMapList: function ( textureAttributesArrayList ) {
 
-        this.lastAppliedTextureAttributeLength = 0;
-
         var gl = this._graphicContext;
         var textureAttributeArray;
-        var validAttributeType = this._currentShaderGenerator ? this._currentShaderGenerator.getShaderCompiler().validAttributeTypeCache : undefined;
 
         for ( var textureUnit = 0, l = textureAttributesArrayList.length; textureUnit < l; textureUnit++ ) {
             textureAttributeArray = textureAttributesArrayList[ textureUnit ];
@@ -824,14 +802,6 @@ MACROUTILS.createPrototypeClass( State, MACROUTILS.objectInherit( Object.prototy
                 var attribute;
                 if ( attributeStack.values.length ) attribute = attributeStack.back.object;
                 else attribute = attributeStack.globalDefault;
-
-                // need to get the current attribute to check the type
-                if ( validAttributeType && ( !attribute.isTextureNull || !attribute.isTextureNull() ) &&
-
-                    validAttributeType[ attribute.attributeTypeId ] &&
-                    !this._currentShaderGenerator.filterAttributeTypes( attribute ) ) {
-                    this.lastAppliedTextureAttribute[ this.lastAppliedTextureAttributeLength++ ] = attribute;
-                }
 
                 if ( !attributeStack.changed ) continue;
 
