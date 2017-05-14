@@ -103,7 +103,7 @@ MACROUTILS.createPrototypeClass( StateSet, MACROUTILS.objectInherit( Object.prot
         this._hasUniform = Object.keys( this.uniforms ).length ? true : false;
     },
 
-    hasUniform: function() {
+    hasUniform: function () {
         return this._hasUniform;
     },
 
@@ -312,7 +312,7 @@ MACROUTILS.createPrototypeClass( StateSet, MACROUTILS.objectInherit( Object.prot
 
                     hasValidAttribute = true;
 
-                    if ( this._activeTextureAttribute.indexOf( j ) === -1 )  {
+                    if ( this._activeTextureAttribute.indexOf( j ) === -1 ) {
                         this._activeTextureAttribute.push( j );
                     }
 
