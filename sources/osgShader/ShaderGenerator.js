@@ -24,7 +24,7 @@ ShaderGenerator.prototype = {
     // setShaderCompiler that will be used to createShader
     setShaderCompiler: function ( ShaderCompiler ) {
         this._ShaderCompiler = ShaderCompiler;
-        if ( !ShaderCompiler.validAttributeTypeMemberCache ) this._computeStateAttributeCache( ShaderCompiler );
+        if ( !ShaderCompiler._validAttributeTypeMemberCache ) this._computeStateAttributeCache( ShaderCompiler );
     },
 
     getShaderCompiler: function () {
@@ -48,7 +48,7 @@ ShaderGenerator.prototype = {
         // when inheriting the class
         // Faster && Flexiblier
         var libName = attribute.libraryName();
-        if ( !this._ShaderCompiler.supportLibraryName[ libName ] ) return true;
+        if ( !this._ShaderCompiler.stateAttributeConfig.namespace[ libName ] ) return true;
 
         // works for attribute that contains isEnabled
         // Light, Shadow. It let us to filter them to build a shader if not enabled
@@ -62,7 +62,7 @@ ShaderGenerator.prototype = {
 
         var hash = '';
         var _attributeArray = state._attributeArray;
-        var cacheType = this._ShaderCompiler.validAttributeTypeMemberCache;
+        var cacheType = this._ShaderCompiler._validAttributeTypeMemberCache;
 
         for ( var j = 0, k = cacheType.length; j < k; j++ ) {
             var type = cacheType[ j ];
@@ -86,7 +86,7 @@ ShaderGenerator.prototype = {
 
         var hash = '';
 
-        var cacheType = this._ShaderCompiler.validAttributeTypeMemberCache;
+        var cacheType = this._ShaderCompiler._validAttributeTypeMemberCache;
         for ( var i = 0, l = cacheType.length; i < l; i++ ) {
             var type = cacheType[ i ];
             var attributeStack = state._attributeArray[ type ];
@@ -107,7 +107,7 @@ ShaderGenerator.prototype = {
 
         var hash = '';
 
-        var cacheType = this._ShaderCompiler.validTextureAttributeTypeMemberCache;
+        var cacheType = this._ShaderCompiler._validTextureAttributeTypeMemberCache;
         var textureUnitList = state._textureAttributeArrayList;
         for ( var j = 0; j < textureUnitList.length; j++ ) {
             var textureUnit = textureUnitList[ j ];
@@ -137,7 +137,7 @@ ShaderGenerator.prototype = {
         var hash = '';
         var _attributeArrayList = state._textureAttributeArrayList;
         var i, l;
-        var cacheType = this._ShaderCompiler.validTextureAttributeTypeMemberCache;
+        var cacheType = this._ShaderCompiler._validTextureAttributeTypeMemberCache;
 
         for ( i = 0, l = _attributeArrayList.length; i < l; i++ ) {
             var _attributeArrayForUnit = _attributeArrayList[ i ];
@@ -203,7 +203,7 @@ ShaderGenerator.prototype = {
 
     _computeStateAttributeCache: function ( CompilerShader ) {
 
-        var typeMemberNames = CompilerShader.validAttributeTypeMember || [];
+        var typeMemberNames = CompilerShader.stateAttributeConfig.attribute || [];
         var validTypeMemberList = [];
         var i, il, cache;
         var id;
@@ -212,16 +212,16 @@ ShaderGenerator.prototype = {
             if ( id !== undefined ) validTypeMemberList.push( id );
         }
         cache = new Uint8Array( validTypeMemberList );
-        CompilerShader.validAttributeTypeMemberCache = cache;
+        CompilerShader._validAttributeTypeMemberCache = cache;
 
-        typeMemberNames = CompilerShader.validTextureAttributeTypeMember || [];
+        typeMemberNames = CompilerShader.stateAttributeConfig.textureAttribute || [];
         validTypeMemberList = [];
         for ( i = 0, il = typeMemberNames.length; i < il; i++ ) {
             id = MACROUTILS.getTextureIdFromTypeMember( typeMemberNames[ i ] );
             if ( id !== undefined ) validTypeMemberList.push( id );
         }
         cache = new Uint8Array( validTypeMemberList );
-        CompilerShader.validTextureAttributeTypeMemberCache = cache;
+        CompilerShader._validTextureAttributeTypeMemberCache = cache;
 
     },
 

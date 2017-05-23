@@ -11,13 +11,9 @@ var CustomCompiler;
         osgShader.Compiler.apply( this, arguments );
     };
 
-    CustomCompiler.validAttributeTypeMember = osgShader.Compiler.validAttributeTypeMember.slice( 0 );
-    CustomCompiler.validAttributeTypeMember.push( 'Temporal' );
-    CustomCompiler.validAttributeTypeMember.forEach( osg.getOrCreateStateAttributeTypeMemberIndexFromName );
-
-    CustomCompiler.validTextureAttributeTypeMember = osgShader.Compiler.validTextureAttributeTypeMember.slice( 0 );
-
-    CustomCompiler.supportLibraryName = osgShader.Compiler.supportLibraryName;
+    var config = osgShader.Compiler.cloneStateAttributeConfig( osgShader.Compiler );
+    config.attribute.push( 'Temporal' );
+    osgShader.Compiler.setStateAttributeConfig( CustomCompiler, config );
 
     CustomCompiler.prototype = osg.objectInherit( osgShader.Compiler.prototype, {
 

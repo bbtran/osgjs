@@ -48,37 +48,50 @@ var Compiler = function ( attributes, textureAttributes, shaderProcessor ) {
     this.initTextureAttributes();
 };
 
-Compiler.validAttributeTypeMember = [
-    'Light0',
-    'ShadowReceive0',
-    'Light1',
-    'ShadowReceive1',
-    'Light2',
-    'ShadowReceive2',
-    'Light3',
-    'ShadowReceive3',
-    'Light4',
-    'Light5',
-    'Light6',
-    'Light7',
-    'Material',
-    'Billboard',
-    'Morph',
-    'Skinning'
-];
-Compiler.validAttributeTypeMember.forEach( MACROUTILS.getOrCreateStateAttributeTypeMemberIndexFromName );
-
-
-Compiler.validTextureAttributeTypeMember = [
-    'Texture'
-];
-Compiler.validTextureAttributeTypeMember.forEach( MACROUTILS.getOrCreateTextureStateAttributeTypeMemberIndexFromName );
-
-Compiler.supportLibraryName = {
-    osg: true,
-    osgAnimation: true,
-    osgShadow: true
+Compiler.cloneStateAttributeConfig = function ( compilerClass ) {
+    return JSON.parse( JSON.stringify( compilerClass.stateAttributeConfig ) );
 };
+
+Compiler.setStateAttributeConfig = function ( compilerClass, config ) {
+    compilerClass.stateAttributeConfig = config;
+
+    config.attribute.forEach( MACROUTILS.getOrCreateStateAttributeTypeMemberIndexFromName );
+    config.textureAttribute.forEach( MACROUTILS.getOrCreateTextureStateAttributeTypeMemberIndexFromName );
+
+    compilerClass.validAttributeTypeMember = config.attribute;
+    compilerClass.validTextureAttributeTypeMember = config.textureAttribute;
+    compilerClass.supportLibraryName = config.namespace;
+};
+
+Compiler.setStateAttributeConfig( Compiler, {
+    attribute: [
+        'Light0',
+        'ShadowReceive0',
+        'Light1',
+        'ShadowReceive1',
+        'Light2',
+        'ShadowReceive2',
+        'Light3',
+        'ShadowReceive3',
+        'Light4',
+        'Light5',
+        'Light6',
+        'Light7',
+        'Material',
+        'Billboard',
+        'Morph',
+        'Skinning'
+    ],
+    textureAttribute: [
+        'Texture'
+    ],
+    namespace: {
+        osg: true,
+        osgAnimation: true,
+        osgShadow: true
+    }
+} );
+
 
 Compiler.prototype = MACROUTILS.extend( {}, CompilerVertex, CompilerFragment, {
 

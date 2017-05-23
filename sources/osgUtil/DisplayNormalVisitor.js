@@ -23,7 +23,10 @@ var CompilerOffsetNormal = function () {
     Compiler.apply( this, arguments );
 };
 
-CompilerOffsetNormal.validAttributeTypeMember = Compiler.validAttributeTypeMember.slice( 0 );
+var configNormal = Compiler.cloneStateAttributeConfig( Compiler );
+configNormal.textureAttribute = [];
+
+Compiler.setStateAttributeConfig( CompilerOffsetNormal, configNormal );
 
 CompilerOffsetNormal.prototype = MACROUTILS.objectInherit( Compiler.prototype, {
     getCompilerName: function () {
@@ -92,7 +95,8 @@ var CompilerOffsetTangent = function () {
     CompilerOffsetNormal.apply( this, arguments );
 };
 
-CompilerOffsetTangent.validAttributeTypeMember = CompilerOffsetNormal.validAttributeTypeMember.slice( 0 );
+var configTangent = configNormal;
+Compiler.setStateAttributeConfig( CompilerOffsetTangent, configTangent );
 
 CompilerOffsetTangent.prototype = MACROUTILS.objectInherit( CompilerOffsetNormal.prototype, {
     getCompilerName: function () {

@@ -22,7 +22,11 @@ var CompilerColorGeometry = function () {
     Compiler.apply( this, arguments );
 };
 
-CompilerColorGeometry.validAttributeTypeMember = Compiler.validAttributeTypeMember.slice( 0 );
+var configColor = Compiler.cloneStateAttributeConfig( Compiler );
+configColor.textureAttribute = [];
+configColor.attribute = [];
+
+Compiler.setStateAttributeConfig( CompilerColorGeometry, configColor );
 
 
 CompilerColorGeometry.prototype = MACROUTILS.objectInherit( Compiler.prototype, {
@@ -58,7 +62,12 @@ var CompilerColorSkinning = function () {
     Compiler.apply( this, arguments );
 };
 
-CompilerColorSkinning.validAttributeTypeMember = Compiler.validAttributeTypeMember.slice( 0 );
+
+var configSkinning = Compiler.cloneStateAttributeConfig( Compiler );
+configSkinning.textureAttribute = [];
+
+Compiler.setStateAttributeConfig( CompilerColorSkinning, configSkinning );
+
 
 CompilerColorSkinning.prototype = MACROUTILS.objectInherit( Compiler.prototype, {
     getCompilerName: function () {

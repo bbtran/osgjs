@@ -7,15 +7,15 @@ var CompilerShadowCast = function () {
     Compiler.apply( this, arguments );
 };
 
-CompilerShadowCast.validAttributeTypeMember = [
+var config = Compiler.cloneStateAttributeConfig( Compiler );
+config.attribute = [
     'ShadowCast',
     'Morph',
     'Skinning',
     'PointSize'
 ];
-CompilerShadowCast.validAttributeTypeMember.forEach( MACROUTILS.getOrCreateStateAttributeTypeMemberIndexFromName );
 
-CompilerShadowCast.supportLibraryName = Compiler.supportLibraryName;
+Compiler.setStateAttributeConfig( CompilerShadowCast, config );
 
 CompilerShadowCast.prototype = MACROUTILS.objectInherit( Compiler.prototype, {
     getCompilerName: function () {

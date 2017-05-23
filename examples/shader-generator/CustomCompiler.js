@@ -11,12 +11,11 @@
         osgShader.Compiler.apply( this, arguments );
     };
 
-    CustomCompiler.validAttributeTypeMember = osgShader.Compiler.validAttributeTypeMember.slice( 0 );
-    CustomCompiler.validAttributeTypeMember.push( 'Ramp' );
-    CustomCompiler.validAttributeTypeMember.push( 'Negatif' );
-    CustomCompiler.validAttributeTypeMember.forEach( osg.getOrCreateStateAttributeTypeMemberIndexFromName );
-
-    CustomCompiler.supportLibraryName = osgShader.Compiler.supportLibraryName;
+    // we use same attributes than the default compiler
+    var config = osgShader.Compiler.cloneStateAttributeConfig( osgShader.Compiler );
+    config.attribute.push( 'Ramp' );
+    config.attribute.push( 'Negatif' );
+    osgShader.Compiler.setStateAttributeConfig( CustomCompiler, config );
 
     CustomCompiler.prototype = osg.objectInherit( osgShader.Compiler.prototype, {
 
