@@ -2,7 +2,6 @@
 var Camera = require( 'osg/Camera' );
 var CullVisitor = require( 'osg/CullVisitor' );
 var BlendFunc = require( 'osg/BlendFunc' );
-var ComputeBoundsVisitor = require( 'osg/ComputeBoundsVisitor' );
 var Depth = require( 'osg/Depth' );
 var FrameBufferObject = require( 'osg/FrameBufferObject' );
 var mat4 = require( 'osg/glMatrix' ).mat4;
@@ -22,8 +21,6 @@ var vec4 = require( 'osg/glMatrix' ).vec4;
 var Viewport = require( 'osg/Viewport' );
 var WebGLCaps = require( 'osg/WebGLCaps' );
 var ShadowReceiveAttribute = require( 'osgShadow/ShadowReceiveAttribute' );
-var ShadowCasterVisitor = require( 'osgShadow/ShadowCasterVisitor' );
-var ShadowFrustumIntersection = require( 'osgShadow/ShadowFrustumIntersection' );
 var ShadowCastAttribute = require( 'osgShadow/ShadowCastAttribute' );
 var ShadowTechnique = require( 'osgShadow/ShadowTechnique' );
 var ShadowTexture = require( 'osgShadow/ShadowTexture' );
@@ -151,21 +148,6 @@ var ShadowMap = function ( settings, shadowTexture ) {
 
     if ( settings )
         this.setShadowSettings( settings );
-
-    this._computeFrustumBounds = new ShadowFrustumIntersection();
-    this._computeBoundsVisitor = new ComputeBoundsVisitor();
-
-    // Overridable Visitor so that user can override the visitor to enable disable
-    // in its own shadowmap implementation
-    // settings.userShadowCasterVisitor:
-    // - undefined means using default
-    // - false means no removal visitor needed
-    // - otherwise must be an instance of a class inherited from shadowCaster
-    if ( settings.userShadowCasterVisitor !== false ) {
-
-        this._removeNodesNeverCastingVisitor = settings.userShadowCasterVisitor || new ShadowCasterVisitor( this._castsShadowTraversalMask );
-
-    }
 
     this._infiniteFrustum = true;
     var shadowStateAttribute = new ShadowCastAttribute( false, this._shadowReceiveAttribute );
@@ -865,40 +847,7 @@ ShadowMap.prototype = MACROUTILS.objectLibraryClass( MACROUTILS.objectInherit( S
 
     // Defines the frustum from light param.
     //
-    cullShadowCasting: function ( cullVisitor ) {
-
-        var bbox;
-
-        if ( this._removeNodesNeverCastingVisitor ) {
-
-            this._removeNodesNeverCastingVisitor.setNoCastMask( ~( this._castsShadowBoundsTraversalMask | this._castsShadowDrawTraversalMask ) );
-            this._removeNodesNeverCastingVisitor.reset();
-            this.getShadowedScene().accept( this._removeNodesNeverCastingVisitor );
-
-        }
-
-        this._computeBoundsVisitor.setTraversalMask( this._castsShadowBoundsTraversalMask );
-        this._computeBoundsVisitor.reset();
-        this.getShadowedScene().accept( this._computeBoundsVisitor );
-        bbox = this._computeBoundsVisitor.getBoundingBox();
-
-        if ( !bbox.valid() ) {
-
-            // nothing to draw Early out.
-            this.noDraw();
-
-            if ( this._removeNodesNeverCastingVisitor ) {
-
-                // remove our flags changes on any bitmask
-                // not to break things
-                this._removeNodesNeverCastingVisitor.restore();
-
-            }
-
-            return;
-
-        }
-
+    cullShadowCasting: function ( cullVisitor, bbox ) {
 
         if ( this._debug ) {
 
@@ -916,12 +865,6 @@ ShadowMap.prototype = MACROUTILS.objectLibraryClass( MACROUTILS.objectInherit( S
 
         }
 
-        // HERE we get the shadowedScene Current World Matrix
-        // to get any world transform ABOVE the shadowedScene
-        var worldMatrix = cullVisitor.getCurrentModelMatrix();
-        // it does fuck up the results.
-        bbox.transformMat4( bbox, worldMatrix );
-
         this._emptyCasterScene = false;
         this.aimShadowCastingCamera( cullVisitor, bbox );
 
@@ -929,14 +872,6 @@ ShadowMap.prototype = MACROUTILS.objectLibraryClass( MACROUTILS.objectInherit( S
             // nothing to draw Early out.
             //console.log( 'shadow early OUT' );
             this.noDraw();
-
-            if ( this._removeNodesNeverCastingVisitor ) {
-
-                // remove our flags changes on any bitmask
-                // not to break things
-                this._removeNodesNeverCastingVisitor.restore();
-
-            }
 
             return;
         }
@@ -962,7 +897,7 @@ ShadowMap.prototype = MACROUTILS.objectLibraryClass( MACROUTILS.objectInherit( S
         // do RTT from the camera traversal mimicking light pos/orient
         this._cameraShadow.accept( cullVisitor );
 
-        // make sure no negative near 
+        // make sure no negative near
         this.nearFarBounding();
 
         // Here culling is done, we do have near/far.
@@ -973,14 +908,6 @@ ShadowMap.prototype = MACROUTILS.objectLibraryClass( MACROUTILS.objectInherit( S
         // disabling to prevent cullvisitor breaking
         // the projection matrix by "clamping" it
         this._cameraShadow.setComputeNearFar( false );
-
-        if ( this._removeNodesNeverCastingVisitor ) {
-
-            // remove our flags changes on any bitmask
-            // not to break things
-            this._removeNodesNeverCastingVisitor.restore();
-
-        }
 
         cullVisitor.popStateSet();
 
