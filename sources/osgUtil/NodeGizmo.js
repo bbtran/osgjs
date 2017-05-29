@@ -186,7 +186,7 @@ NodeGizmo.PICK_PLANE = NodeGizmo.PICK_PLANE_X | NodeGizmo.PICK_PLANE_Y | NodeGiz
 
 NodeGizmo.PICK_GIZMO = NodeGizmo.PICK_ARC | NodeGizmo.PICK_ARROW | NodeGizmo.PICK_PLANE;
 
-NodeGizmo.prototype = MACROUTILS.objectInherit( MatrixTransform.prototype, {
+MACROUTILS.createPrototypeNode( NodeGizmo, MACROUTILS.objectInherit( MatrixTransform.prototype, {
 
     setRotateInLocal: function ( bool ) {
         this._rotateInLocal = bool;
@@ -1028,6 +1028,6 @@ NodeGizmo.prototype = MACROUTILS.objectInherit( MatrixTransform.prototype, {
         };
     } )()
 
-} );
+} ), 'osgUtil', 'NodeGizmo' );
 
 module.exports = NodeGizmo;
