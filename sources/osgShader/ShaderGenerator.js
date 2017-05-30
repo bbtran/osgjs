@@ -1,6 +1,6 @@
 'use strict';
 var MACROUTILS = require( 'osg/Utils' );
-var Notify = require( 'osg/notify' );
+var notify = require( 'osg/notify' );
 var Program = require( 'osg/Program' );
 var Shader = require( 'osg/Shader' );
 var Compiler = require( 'osgShader/Compiler' );
@@ -205,11 +205,19 @@ ShaderGenerator.prototype = {
 
         var typeMemberNames = CompilerShader.stateAttributeConfig.attribute || [];
         var validTypeMemberList = [];
+        var typeMemberName;
         var i, il, cache;
         var id;
         for ( i = 0, il = typeMemberNames.length; i < il; i++ ) {
-            id = MACROUTILS.getIdFromTypeMember( typeMemberNames[ i ] );
-            if ( id !== undefined ) validTypeMemberList.push( id );
+            typeMemberName = typeMemberNames[ i ];
+            id = MACROUTILS.getIdFromTypeMember( typeMemberName );
+            if ( id !== undefined ) {
+                if ( validTypeMemberList.indexOf( id ) !== -1 ) {
+                    notify.warn( 'Compiler ' + CompilerShader.name + ' contains duplicate attribute entry ' + typeMemberName + ', check the Compiler configuration' );
+                } else {
+                    validTypeMemberList.push( id );
+                }
+            }
         }
         cache = new Uint8Array( validTypeMemberList );
         CompilerShader._validAttributeTypeMemberCache = cache;
@@ -217,8 +225,13 @@ ShaderGenerator.prototype = {
         typeMemberNames = CompilerShader.stateAttributeConfig.textureAttribute || [];
         validTypeMemberList = [];
         for ( i = 0, il = typeMemberNames.length; i < il; i++ ) {
-            id = MACROUTILS.getTextureIdFromTypeMember( typeMemberNames[ i ] );
-            if ( id !== undefined ) validTypeMemberList.push( id );
+            typeMemberName = typeMemberNames[ i ];
+            id = MACROUTILS.getTextureIdFromTypeMember( typeMemberName );
+            if ( validTypeMemberList.indexOf( id ) !== -1 ) {
+                notify.warn( 'Compiler ' + CompilerShader.name + ' contains duplicate texture attribute entry ' + typeMemberName + ', check the Compiler configuration' );
+            } else {
+                validTypeMemberList.push( id );
+            }
         }
         cache = new Uint8Array( validTypeMemberList );
         CompilerShader._validTextureAttributeTypeMemberCache = cache;
@@ -253,8 +266,8 @@ ShaderGenerator.prototype = {
 
             /* develblock:start */
             // Logs hash, attributes and compiler
-            Notify.debug( 'New Compilation ', false, true );
-            Notify.debug( {
+            notify.debug( 'New Compilation ', false, true );
+            notify.debug( {
                 Attributes: attributes,
                 Texture: textureAttributes,
                 Hash: hash,
